@@ -65,9 +65,9 @@ output = numpy.array(output)
 tensorflow.reset_default_graph() #Resetting all the previous stuffs in the graph.
 
 net = tflearn.input_data(shape=[None, len(training[0])]) #This finds the input shape that we are expecting for the model. Each training input is gonna be of the same length, so, 0.
-net = tflearn.fully_connected(net, 8) #Hidden layer with 15 neurons.
-net = tflearn.fully_connected(net, 8) #Another hidden layer with 15 neurons.
-net = tflearn.fully_connected(net, 8) #Another hidden layer with 15 neurons.
+net = tflearn.fully_connected(net, 8) #Hidden layer with 8 neurons.
+net = tflearn.fully_connected(net, 8) #Another hidden layer with 8 neurons.
+net = tflearn.fully_connected(net, 8) #Another hidden layer with 8 neurons.
 net = tflearn.fully_connected(net, len(output[0]), activation="softmax") #length will be how many labels (how many tags) we have. Give us probability for each neuron in the network. The higest probability will be the output.
 net = tflearn.regression(net)
 
@@ -77,7 +77,7 @@ try:
     model.predict("model.tflearn")
     model.load()
 except:
-    model.fit(training, output, n_epoch=10, batch_size=8, show_metric=True) #Fitting our data to the model. The number of epochs we set is the amount of times that the model will see the same information while training.
+    model.fit(training, output, n_epoch=1000, batch_size=8, show_metric=True) #Fitting our data to the model. The number of epochs we set is the amount of times that the model will see the same information while training.
     model.save("model.tflearn") #we can save it to the file model.tflearn for use in other scripts.
 
 
@@ -96,9 +96,7 @@ def bag_of_words(s, list_words): #bag_of_words function will transform our strin
 
 
 def check():
-
-
-    docs_all=[]        
+     
     set_sents = []
 
     print("Type an answer (Enter 'quit' to stop)")
@@ -108,29 +106,27 @@ def check():
         if inp == "quit":
             break
 
-        results = model.predict([bag_of_words(inp, list_words)])
-        results_index = numpy.argmax(results)
-        tag = labels[results_index]
-
-        split_sent_inp = nltk.sent_tokenize(inp)
+        results = model.predict([bag_of_words(inp, list_words)]) #we predict the most matching text from the training dataset that matches with the input text.
+        results_index = numpy.argmax(results) #we get thr index of the result.
+        tag = labels[results_index] #we get the tag of the most matching text with the input text.
+        
         for tg in dataset["intents"]:
             if tg['tag'] == tag:
                 response = tg['texts']
-        #something ent wrong after this:
-        split_sent_resp = nltk.sent_tokenize(response)
         print("Plagarism found with the text: ")
-        print(response)
-        docs_all.extend(split_sent_inp)
-        docs_all.extend(split_sent_resp)
-        set_sents.extend(docs_all)
-        len_resp = len(split_sent_resp)
-        set_sents = [stemmer.stem(sents) for sents in set_sents]
-        len_initial=len(set_sents)
-        set_sents = sorted(list(set(set_sents)))
-        len_final=len(set_sents)
-        len_difference = len_initial - len_final
-        percent = (((len_resp - len_difference)/(len_resp))*100)
-        plag_percent=100-percent
+        print(response) #we show the most matching text with the input text. 
+        split_sent_resp = nltk.sent_tokenize(response) #we divide the response text (the most matching text with the input text)
+        list_sents=split_sent_resp #we put the sentenses in a different list for future work.
+        len_initial=len(list_sents) #Initial length of the set_sents. It shows how many sentenses are there in the response text(i.e, the text that matches the most with input text). 
+
+        split_sent_inp = nltk.sent_tokenize(inp) #we split the input text into sentenses
+        len_inp=len(split_sent_inp) #number of sentenses in the input text.
+        list_sents.extend(split_sent_inp)
+        total_len=len(list_sents) #we get the total number of sentenses in input and response text, including the duplicate sentenses.
+        set_sents=set(list_sents) #we are making the list a set, so that duplicate sentenses get deleted.
+        set_len=len(set_sents)
+        len_difference=total_len-set_len #this gives us the number of duplicate sentenses, i.e, the copied or plaigarized sentenses.
+        plag_percent=(1-((len_inp-len_difference)/len_inp))*100
         print("The percent of plagarism in the document is: ",plag_percent)
 
         docs_all=[]
